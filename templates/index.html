@@ -1,0 +1,351 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HR Case Resolution Agent</title>
+  <style>
+  :root{
+    --blue:#2563eb;
+    --sky:#38bdf8;
+    --green:#22c55e;
+    --mint:#dffcf2;
+    --light:#eef9ff;
+    --dark:#0f172a;
+  }
+
+  body{
+    font-family:Inter,Arial,sans-serif;
+    background:linear-gradient(135deg,#e0f7ff,#ecfff5);
+    margin:0;
+    color:var(--dark);
+  }
+
+  .wrap{
+    max-width:1100px;
+    margin:24px auto;
+    padding:18px;
+  }
+
+  h1{
+    font-size:34px;
+    background:linear-gradient(90deg,var(--blue),var(--green));
+    -webkit-background-clip:text;
+    color:transparent;
+  }
+
+  .card{
+    background:rgba(255,255,255,.88);
+    border:1px solid #d8f3ff;
+    border-radius:22px;
+    padding:24px;
+    box-shadow:0 12px 35px rgba(37,99,235,.12);
+    margin-bottom:18px;
+    backdrop-filter:blur(10px);
+  }
+
+  input,textarea,button,select{
+    font-size:16px;
+    padding:13px;
+    border-radius:14px;
+    border:1px solid #bae6fd;
+  }
+
+  button{
+    background:linear-gradient(90deg,var(--blue),var(--green));
+    color:white;
+    border:0;
+    cursor:pointer;
+    font-weight:700;
+  }
+
+  .row{
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+  }
+
+  .row>*{flex:1}
+  .hidden{display:none}
+
+  .msg{
+    padding:18px;
+    border-radius:20px;
+    margin:14px 0;
+    white-space:pre-wrap;
+    line-height:1.45;
+  }
+
+  .user{
+    background:#dbeafe;
+    border-left:6px solid var(--blue);
+  }
+
+  .bot{
+    background:var(--mint);
+    border-left:6px solid var(--green);
+  }
+
+  .ticket{
+    background:#f8fffc;
+    border:1px solid #bbf7d0;
+    border-radius:18px;
+    padding:16px;
+    margin:10px 0;
+  }
+
+  .small{
+    font-size:13px;
+    color:#64748b;
+  }
+
+  .danger{color:#dc2626}
+
+  footer{
+    text-align:center;
+    padding:22px;
+    color:#0369a1;
+    font-weight:700;
+  }
+
+  footer span{
+    background:linear-gradient(90deg,var(--sky),var(--green));
+    -webkit-background-clip:text;
+    color:transparent;
+  }
+</style>
+</head>
+
+<body>
+<div class="wrap">
+  <h1>HR Case Resolution Agent</h1>
+
+  <div id="login" class="card">
+    <h2>Login</h2>
+    <p class="small">Demo: EMP001 / password123 or HR001 / password123</p>
+
+    <div class="row">
+      <input id="employee_id" placeholder="Employee ID" value="EMP001">
+      <input id="password" type="password" placeholder="Password" value="password123">
+      <button onclick="login()">Login</button>
+    </div>
+
+    <p id="loginErr" class="danger"></p>
+  </div>
+
+  <div id="app" class="hidden">
+    <div class="card">
+      <div class="row">
+        <div>
+          <b id="who"></b>
+          <div id="role" class="small"></div>
+        </div>
+        <button onclick="logout()" style="max-width:150px;background:#6b7280">Logout</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Employee Chat</h2>
+      <div id="chatBox"></div>
+
+      <div class="row">
+        <textarea id="message" placeholder="Ask HR something... e.g. Can I claim dental treatment?" rows="2"></textarea>
+        <button onclick="sendChat()" style="max-width:160px">Send</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Tickets</h2>
+      <button onclick="loadTickets()">Refresh Tickets</button>
+      <div id="tickets"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+let token = localStorage.getItem('token');
+let currentUser = null;
+
+async function api(url, opts = {}) {
+  opts.headers = opts.headers || {};
+
+  if (token) {
+    opts.headers.Authorization = 'Bearer ' + token;
+  }
+
+  if (opts.body && !opts.headers['Content-Type']) {
+    opts.headers['Content-Type'] = 'application/json';
+  }
+
+  const res = await fetch(url, opts);
+
+  if (!res.ok) {
+    let message = 'Request failed';
+    try {
+      const err = await res.json();
+      message = err.detail || message;
+    } catch (_) {}
+    throw new Error(message);
+  }
+
+  return res.json();
+}
+
+async function login() {
+  const loginErr = document.getElementById('loginErr');
+  const employeeInput = document.getElementById('employee_id');
+  const passwordInput = document.getElementById('password');
+
+  loginErr.textContent = '';
+
+  try {
+    const data = await api('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({
+        employee_id: employeeInput.value.trim(),
+        password: passwordInput.value
+      })
+    });
+
+    token = data.access_token;
+    localStorage.setItem('token', token);
+    currentUser = data.employee;
+
+    await showApp();
+  } catch (e) {
+    loginErr.textContent = e.message;
+  }
+}
+
+function logout() {
+  localStorage.removeItem('token');
+  token = null;
+  currentUser = null;
+  location.reload();
+}
+
+async function showApp() {
+  if (!currentUser) {
+    currentUser = await api('/me');
+  }
+
+  const loginDiv = document.getElementById('login');
+  const appDiv = document.getElementById('app');
+  const who = document.getElementById('who');
+  const role = document.getElementById('role');
+
+  loginDiv.classList.add('hidden');
+  appDiv.classList.remove('hidden');
+
+  who.textContent = currentUser.name || currentUser.employee_id;
+  role.textContent =
+    `${currentUser.employee_id} • ${currentUser.department || ''} • ${currentUser.role}`;
+
+  await loadTickets();
+}
+
+async function sendChat() {
+  const messageInput = document.getElementById('message');
+  const chatBox = document.getElementById('chatBox');
+
+  const text = messageInput.value.trim();
+  if (!text) return;
+
+  chatBox.innerHTML += `
+    <div class="msg user">
+      <b>You:</b> ${escapeHtml(text)}
+    </div>
+  `;
+
+  messageInput.value = '';
+
+  try {
+    const data = await api('/chat', {
+      method: 'POST',
+      body: JSON.stringify({ message: text })
+    });
+
+    chatBox.innerHTML += `
+      <div class="msg bot">
+        <b>HR Agent:</b> ${escapeHtml(data.answer)}
+        <br>
+        <span class="small">
+          Category: ${escapeHtml(data.category)}
+          • Status: ${escapeHtml(data.status)}
+          ${data.ticket_id ? ' • Ticket #' + data.ticket_id : ''}
+        </span>
+      </div>
+    `;
+
+    await loadTickets();
+  } catch (e) {
+    chatBox.innerHTML += `
+      <div class="msg bot danger">${escapeHtml(e.message)}</div>
+    `;
+  }
+}
+
+async function loadTickets() {
+  const ticketsDiv = document.getElementById('tickets');
+
+  try {
+    const data = await api('/tickets');
+
+    if (!data.length) {
+      ticketsDiv.innerHTML = '<p class="small">No tickets yet.</p>';
+      return;
+    }
+
+    ticketsDiv.innerHTML = data.map(t => `
+      <div class="ticket">
+        <b>#${t.id} ${escapeHtml(t.category)}</b>
+        <span class="small">${escapeHtml(t.status)} • ${escapeHtml(t.priority)}</span>
+        <br>
+        ${escapeHtml(t.issue)}
+        <br>
+        <span class="small">Employee: ${escapeHtml(t.employee_id)}</span>
+        ${
+          currentUser && currentUser.role === 'hr_admin'
+            ? `<br><button onclick="closeTicket(${t.id})" style="margin-top:8px;background:#059669">Close</button>`
+            : ''
+        }
+      </div>
+    `).join('');
+  } catch (e) {
+    ticketsDiv.innerHTML = `<p class="danger">${escapeHtml(e.message)}</p>`;
+  }
+}
+
+async function closeTicket(id) {
+  await api('/tickets/' + id, {
+    method: 'PATCH',
+    body: JSON.stringify({
+      status: 'closed',
+      resolution_note: 'Resolved by HR admin from web UI'
+    })
+  });
+
+  await loadTickets();
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>'"]/g, c => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    "'": '&#39;',
+    '"': '&quot;'
+  }[c]));
+}
+
+if (token) {
+  showApp().catch(() => logout());
+}
+</script>
+
+<footer>
+  Powered by <span>Aitalent.my</span>
+</footer>
+
+</body>
+</html>
