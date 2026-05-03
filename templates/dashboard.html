@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>HRAgent Dashboard</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial;
+            display: flex;
+            background: #f5f7fb;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 220px;
+            background: #1e293b;
+            color: white;
+            height: 100vh;
+            padding: 20px;
+        }
+
+        .sidebar h2 {
+            margin-bottom: 30px;
+        }
+
+        .sidebar a {
+            display: block;
+            color: #cbd5f5;
+            text-decoration: none;
+            margin: 10px 0;
+        }
+
+        .sidebar a:hover {
+            color: white;
+        }
+
+        /* Main */
+        .main {
+            flex: 1;
+            padding: 20px;
+        }
+
+        .topbar {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .cards {
+            display: flex;
+            gap: 20px;
+        }
+
+        .card {
+            flex: 1;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .table {
+            margin-top: 20px;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        table {
+            width: 100%;
+        }
+
+        th, td {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+    </style>
+</head>
+
+<body>
+
+<div class="sidebar">
+    <h2>HRAgent</h2>
+    <a href="#">Dashboard</a>
+    <a href="#">Cases</a>
+    <a href="#">Employees</a>
+    <a href="#">Reports</a>
+</div>
+
+<div class="main">
+
+    <div class="topbar">
+        <div>Welcome, {{ user }}</div>
+        <div>Logout</div>
+    </div>
+
+    <div class="cards">
+        <div class="card">
+            <h3>Total Cases</h3>
+            <p>120</p>
+        </div>
+
+        <div class="card">
+            <h3>Pending</h3>
+            <p>34</p>
+        </div>
+
+        <div class="card">
+            <h3>Resolved</h3>
+            <p>86</p>
+        </div>
+    </div>
+
+    <div class="table">
+        <h3>Recent Cases</h3>
+        <table>
+            <tr>
+                <th>ID</th>
+                <th>Employee</th>
+                <th>Status</th>
+            </tr>
+            <tr>
+                <td>1</td>
+                <td>EMP001</td>
+                <td>Pending</td>
+            </tr>
+            <tr>
+                <td>2</td>
+                <td>EMP002</td>
+                <td>Resolved</td>
+            </tr>
+        </table>
+    </div>
+
+</div>
+
+</body>
+</html>
