@@ -11,6 +11,16 @@ from schemas import LoginRequest, ChatRequest, ChatResponse, TicketUpdate, Emplo
 from agents.router_agent import classify_case, priority_for
 from agents.resolution_agent import resolve_case
 
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
+from fastapi import Request
+
+templates = Jinja2Templates(directory="templates")
+
+@app.get("/", response_class=HTMLResponse)
+def home(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
+
 init_db()
 app = FastAPI(title='HR Case Resolution Agent', version='1.0.0')
 app.add_middleware(CORSMiddleware, allow_origins=['*'], allow_credentials=True, allow_methods=['*'], allow_headers=['*'])
